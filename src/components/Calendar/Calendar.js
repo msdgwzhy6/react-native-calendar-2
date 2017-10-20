@@ -7,7 +7,7 @@
  */
 
 import React, { Component } from 'react'
-import { View, StyleSheet, Text, TouchableOpacity, Button } from 'react-native'
+import { View, StyleSheet, Text, TouchableOpacity, Button, TouchableWithoutFeedback } from 'react-native'
 import calendar from './utils/calendar'
 import Dropdown from './Dropdown'
 
@@ -26,8 +26,9 @@ export default class Calendar extends Component {
 
   constructor(props) {
     super(props);
+    let currentDate = new Date()
     this.state = {
-      currentDate:new Date(),
+      currentDate,
     };
   }
 
@@ -36,12 +37,11 @@ export default class Calendar extends Component {
   }
 
   render () {
-    let animal = calendar.getAnimal(2017)
-    console.log(animal)
     return <View onLayout={this.measureView}>
       {this.renderFilterViews()}
       {this.renderColumnHeaders()}
       {this.renderDateRows()}
+      {this.renderDateDetail()}
     </View>
   }
 
@@ -64,6 +64,12 @@ export default class Calendar extends Component {
       return {
         currentDate:newDate
       }
+    })
+  }
+
+  onDateChange(value) {
+    this.setState({
+      currentDate:value
     })
   }
 
@@ -90,9 +96,7 @@ export default class Calendar extends Component {
   }
 
   backToday(){
-    this.setState({
-      currentDate:new Date()
-    })
+    this.onDateChange(new Date())
   }
 
   renderFilterViews(){
@@ -162,7 +166,8 @@ export default class Calendar extends Component {
 
   renderDateRows () {
     //得到当月第一天是星期几
-    let firstDate = new Date(this.state.currentDate)
+    let currentDate =  this.state.currentDate
+    let firstDate = new Date(currentDate)
     firstDate.setDate(1)
     let a = []
     let cursorDate = new Date(firstDate)
@@ -187,22 +192,51 @@ export default class Calendar extends Component {
                 justifyContent:'center',
                 borderWidth:1
               }
+              let itemTextStyle = {
+                color:'black'
+              }
               if(index1!==0) itemStyle.borderTopWidth=0
               if(index2!==0) itemStyle.borderLeftWidth=0
-              if(item.isToday) itemStyle.backgroundColor ='red'
-              return <View
-                key= {item.IDayCn+ index2}
+              if(item.isToday){
+                itemStyle.backgroundColor ='red'
+              }else if(currentDate.getFullYear() === item.cYear
+              &&currentDate.getMonth() === item.cMonth-1
+              &&currentDate.getDate() === item.cDay){
+                itemStyle.backgroundColor ='green'
+              }
+              if(currentDate.getMonth()!== item.cMonth-1){
+                itemTextStyle.color = 'gray'
+              }
+              return <TouchableOpacity
+                onPress={() => this.onDateChange(new Date(item.cYear,item.cMonth-1,item.cDay))}
+                key= {index2}
                 style={itemStyle}>
                 <Text
-                  style={styles.itemText}>
+                  style={[styles.itemText,itemTextStyle]}>
                   {item.cDay+'\n'+(item.isTerm?item.Term:item.IDayCn)}
                 </Text>
-              </View>
+              </TouchableOpacity>
               }
             )}
           </View>
         )
       }
+    </View>
+  }
+
+  renderDateDetail (){
+    let currentDate = this.state.currentDate
+    let lunar = calendar.solar2lunar(currentDate.getFullYear(),currentDate.getMonth()+1,currentDate.getDate())
+    return <View>
+      <Text>
+        {
+         `
+          生肖：${lunar.Animal}
+          农历日期：${lunar.gzYear}年 ${lunar.isLeap?'闰':''}${lunar.gzMonth}月 ${lunar.gzDay}日
+          星座：${lunar.astro}
+          备注：`
+        }
+      </Text>
     </View>
   }
 }
