@@ -36,9 +36,9 @@ export default class Dropdown extends Component {
     let buttonText =(props.value||props.defaultValue).toString()
     let selectedIndex = props.index||props.defaultIndex
 
-    //在某些情况没有defaultIndex属性或者只传了defaultValue属性的话，通过defaultValue锁定index
-    if(options&&buttonText){
-      for (let i = 0; i < props.options.length; i++) {
+    //在没有传递index的情况下，通过value遍历判断位置
+    if(selectedIndex>=0 && options&&buttonText){
+      for (let i = 0; i < options.length; i++) {
         if(options[i].toString() === buttonText){
           selectedIndex = i
           break
@@ -61,11 +61,32 @@ export default class Dropdown extends Component {
     let buttonText = !this._nextValue ? this.state.buttonText : this._nextValue.toString()
     let selectedIndex = !this._nextIndex ? this.state.selectedIndex : this._nextIndex
     if (selectedIndex < 0) {
-      selectedIndex = nextProps.defaultIndex
+      selectedIndex = nextProps.index = nextProps.defaultIndex
       if (selectedIndex < 0) {
-        buttonText = nextProps.defaultValue
+        buttonText = (nextProps.value||nextProps.defaultValue).toString()
       }else if(selectedIndex >= 0){
         buttonText = nextProps.options[selectedIndex].toString()||buttonText
+      }
+      if(buttonText){
+        for (let i = 0; i < nextProps.options.length; i++) {
+          if(nextProps.options[i].toString() === buttonText){
+            selectedIndex = i
+            break
+          }
+        }
+      }
+    }
+    //如果value或者index不为空的话，以props中的值为准,index优先级高
+    if(nextProps.index){
+      selectedIndex = nextProps.index
+      buttonText = nextProps.options[selectedIndex]
+    }else if(nextProps.value){
+      buttonText = nextProps.value
+      for (let i = 0; i < nextProps.options.length; i++) {
+        if(nextProps.options[i].toString() === buttonText){
+          selectedIndex = i
+          break
+        }
       }
     }
     this._nextValue = null

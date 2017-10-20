@@ -48,7 +48,7 @@ export default class Calendar extends Component {
   onYearChange(value){
     let year = parseInt(value)
     this.setState((pre) => {
-      let newDate = new Date(pre)
+      let newDate = new Date(pre.currentDate)
       newDate.setYear(year)
       return {
         currentDate:newDate
@@ -67,6 +67,28 @@ export default class Calendar extends Component {
     })
   }
 
+  onMonthMinus() {
+    let month = this.state.currentDate.getMonth()
+    let year = this.state.currentDate.getFullYear()
+    if(month -1 < 0){
+      this.onMonthChange(11)
+      this.onYearChange(year-1)
+    }else {
+      this.onMonthChange(month)
+    }
+  }
+
+  onMonthPlus(){
+    let month = this.state.currentDate.getMonth()
+    let year = this.state.currentDate.getFullYear()
+    if(month +1 > 11){
+      this.onMonthChange(1)
+      this.onYearChange(year+1)
+    }else {
+      this.onMonthChange(month+2)
+    }
+  }
+
   backToday(){
     this.setState({
       currentDate:new Date()
@@ -79,11 +101,13 @@ export default class Calendar extends Component {
       <Dropdown options={allYears}
                 style={styles.dropdown}
                 onSelect= {this.onYearChange.bind(this)}
-                defaultValue={currentDate.getFullYear()+''}
+                value={currentDate.getFullYear()+''}
                 textStyle={styles.dropdown_text}
                 dropdownStyle={styles.dropdown_dropdown}
       />
-      <TouchableOpacity >
+      <TouchableOpacity
+        onPress={this.onMonthMinus.bind(this)}
+      >
         <Text style={{
           fontSize:18,
         }}>
@@ -93,13 +117,13 @@ export default class Calendar extends Component {
       <Dropdown options={allMonth}
                 style={styles.dropdown}
                 onSelect= {this.onMonthChange.bind(this)}
-                defaultValue={(currentDate.getMonth()+1)+'月'}
+                value={(currentDate.getMonth()+1)+'月'}
                 textStyle={styles.dropdown_text}
                 dropdownStyle={styles.dropdown_dropdown}
       />
-      <TouchableOpacity  style={{
-        alignSelf:'center'
-      }}>
+      <TouchableOpacity
+        onPress={this.onMonthPlus.bind(this)}
+      >
         <Text style={{
           fontSize:18,
         }}>
