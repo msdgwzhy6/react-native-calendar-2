@@ -6,10 +6,11 @@
  *
  */
 
-import React, { Component } from 'react'
+import React, { Component ,PropTypes} from 'react'
 import { View, StyleSheet, Text, TouchableOpacity, Button, TouchableWithoutFeedback } from 'react-native'
 import calendar from './utils/calendar'
 import Dropdown from './Dropdown'
+import MarkModal from './MarkModal'
 
 const allYears = [];
 (() => {
@@ -34,15 +35,6 @@ export default class Calendar extends Component {
 
   measureView (event) {
     console.log(event)
-  }
-
-  render () {
-    return <View onLayout={this.measureView}>
-      {this.renderFilterViews()}
-      {this.renderColumnHeaders()}
-      {this.renderDateRows()}
-      {this.renderDateDetail()}
-    </View>
   }
 
   onYearChange(value){
@@ -95,8 +87,22 @@ export default class Calendar extends Component {
     }
   }
 
+  onDateMarked(date){
+
+  }
+
   backToday(){
     this.onDateChange(new Date())
+  }
+
+  render () {
+    return <View onLayout={this.measureView}>
+      {/*{this.renderFilterViews()}*/}
+      {/*{this.renderColumnHeaders()}*/}
+      {/*{this.renderDateRows()}*/}
+      {/*{this.renderDateDetail()}*/}
+      <MarkModal />
+    </View>
   }
 
   renderFilterViews(){
@@ -195,8 +201,10 @@ export default class Calendar extends Component {
               let itemTextStyle = {
                 color:'black'
               }
+              //item border
               if(index1!==0) itemStyle.borderTopWidth=0
               if(index2!==0) itemStyle.borderLeftWidth=0
+              //today and selectDay
               if(item.isToday){
                 itemStyle.backgroundColor ='red'
               }else if(currentDate.getFullYear() === item.cYear
@@ -204,11 +212,15 @@ export default class Calendar extends Component {
               &&currentDate.getDate() === item.cDay){
                 itemStyle.backgroundColor ='green'
               }
+              //not current month's day
               if(currentDate.getMonth()!== item.cMonth-1){
                 itemTextStyle.color = 'gray'
               }
+              //
+              let date = new Date(item.cYear,item.cMonth-1,item.cDay)
               return <TouchableOpacity
-                onPress={() => this.onDateChange(new Date(item.cYear,item.cMonth-1,item.cDay))}
+                onPress={() => this.onDateChange(date)}
+                onLongPress={() => this.onDateMarked(date)}
                 key= {index2}
                 style={itemStyle}>
                 <Text
@@ -280,9 +292,10 @@ const styles = StyleSheet.create({
     borderColor: 'blue',
     borderWidth: 2,
     borderRadius: 3,
-  },
-  dropdown_2_separator: {
-    height: 1,
-    backgroundColor: 'blue',
-  },
+  }
 })
+
+Calendar.propTypes = {
+  punchDates:PropTypes.array, // 格式为可解析的时间字符串即可
+  markDates:PropTypes.object,  // 格式为{date,content}
+}
