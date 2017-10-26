@@ -489,7 +489,28 @@ export default calendar = {
         //该日期所属的星座
         var astro       = calendar.toAstro(m,d);
         
-        return {'lYear':year,'lMonth':month,'lDay':day,'Animal':calendar.getAnimal(year),'IMonthCn':(isLeap?"\u95f0":'')+calendar.toChinaMonth(month),'IDayCn':calendar.toChinaDay(day),'cYear':y,'cMonth':m,'cDay':d,'gzYear':gzY,'gzMonth':gzM,'gzDay':gzD,'isToday':isToday,'isLeap':isLeap,'nWeek':nWeek,'ncWeek':"\u661f\u671f"+cWeek,'isTerm':isTerm,'Term':Term,'astro':astro};
+        return {
+          'lYear':year,
+          'lMonth':month,
+          'lDay':day,
+          'Animal':this.getAnimal(year),
+          'IMonthCn':(isLeap?"\u95f0":'')+this.toChinaMonth(month),
+          'IDayCn':this.toChinaDay(day),
+          'toDate': () => new Date(y, m, d),
+          'cYear':y,
+          'cMonth':m,
+          'cDay':d,
+          'gzYear':gzY,
+          'gzMonth':gzM,
+          'gzDay':gzD,
+          'isToday':isToday,
+          'isLeap':isLeap,
+          'nWeek':nWeek,
+          'ncWeek':"\u661f\u671f"+cWeek,
+          'isTerm':isTerm,
+          'Term':Term,
+          'astro':astro
+        };
     },
 
     /**

@@ -6,7 +6,7 @@
  *
  */
  
-export class CalendarManager {
+export default class CalendarManager {
 
   constructor(punchDates, markDates){
     this.punchDates = []
@@ -30,19 +30,38 @@ export class CalendarManager {
     }
   }
 
-  // 是否已经签到
-  isHasPunchByDay(){
-
+  /**
+   * 是否已经签到
+   * @param date
+   * @returns {boolean}
+   */
+  isHasPunchByDay(date){
+    for (let i = 0; i < this.punchDates.length; i++) {
+      let punchDate = this.punchDates[i]
+      if(date.getFullYear() === punchDate.getFullYear()
+         && date.getMonth() === punchDate.getMonth()
+         && date.getDate() === punchDate.getDate()){
+        return true
+      }
+    }
+    return false
   }
 
-  // 是否需要签到
-  isNeedPunchByDay(){
-
-  }
-
-  // 是否有备注
-  isHasMarkByDay(){
-
+  /**
+   * 获取备注
+   * @param date
+   * @returns {*}
+   */
+  getMarkByDay(date){
+    for (let i = 0; i < this.markDates.length; i++) {
+      let markDay = this.markDates[i].date
+      if(date.getFullYear() === markDay.getFullYear()
+        && date.getMonth() === markDay.getMonth()
+        && date.getDate() === markDay.getDate()){
+        return this.markDates[i]
+      }
+    }
+    return undefined
   }
 
 }

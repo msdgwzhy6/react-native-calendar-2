@@ -6,19 +6,34 @@
  *
  */
 
+import { generateUUID } from '../utils/Utils'
 
 export class PunchTask {
-  constructor(title, desc) {
+  constructor(title, desc, rules) {
+    this.id = generateUUID()
     this.title = title
     this.desc = desc
     this.createdAt = new Date()
-    this.rules = [
-    ]
+    this.rules = rules
+    this.punchDates = []
+  }
+
+  punchToDate(){
+    let date = new Date()
+    for (let i = 0; i < this.punchDates.length; i++) {
+        if(date.toDateString() === this.punchDates[i].toDateString()){
+          //已经签到了
+          return false
+        }
+    }
+    this.punchDates.push(date)
+    return true
   }
 }
 
 export class PunchRule {
   constructor(name, startTime, endTime) {
+    this.id = generateUUID()
     this.name = name
     this.starTime = startTime
     this.endTime = endTime
