@@ -9,25 +9,17 @@
 import React, { Component } from 'react'
 import {
   Button,
-  StyleSheet, Text,
+  StyleSheet,
+  Text,
   View
 } from 'react-native'
 import Calendar from '../Calendar/Calendar'
 import MarkModal from './components/MarkModal'
 import { punchHelper } from './utils/PunchHelper'
 import { PunchRule, PunchTask } from './bean'
-
-const punchDates = ['2017-10-22', '2017-10-23', '2017-10-24']
-const markDates = [
-  {
-    date: '2017-10-22',
-    content: '。。。。'
-  },
-  {
-    date: '2017-10-25',
-    content: 'DDDDD'
-  }
-]
+import Dropdown from '../Calendar/Dropdown'
+import NewTaskModal from './components/NewTaskModal'
+import { maskHelper } from './utils/MaskHelper'
 
 export default class Punches extends Component {
 
@@ -35,17 +27,28 @@ export default class Punches extends Component {
     super(props)
     this.state = {
       selectDate: undefined,
-      currentTask: undefined
+      currentTask: undefined,
+      taskList:[],
+      maskDates:[]
     }
   }
 
   componentDidMount(){
     punchHelper.getAllTask()
       .then((tasks) => {
-        console.log('suming-log',tasks)
+        tasks.length>0 && this.setState({
+          currentTask:tasks[0],
+          taskList:tasks
+        })
       })
       .catch((error) => {
         console.log('suming-log',error)
+      })
+    maskHelper.getAllMaskDates()
+      .then((masks) => {
+        this.setState({
+          maskDates:masks
+        })
       })
   }
 
@@ -55,18 +58,49 @@ export default class Punches extends Component {
     })
   }
 
-  showMarkDialog(date){
-    this.markDialog.show(date)
+  showMarkDialog(date,maskDate){
+    this.markDialog.show(maskDate && maskDate.content, (content) => {
+      maskHelper.maskDate({
+        date,
+        content
+      })
+        .then((result) => {
+          if(!result){
+            return maskHelper.getAllMaskDates()
+          }else throw new Error('未知异常')
+        })
+        .then((masks) => {
+          this.setState((pre) => {
+            let newState = {
+              maskDates:masks
+            }
+            if(date.toLocaleDateString() === pre.selectDate.toLocaleDateString()){
+              newState.selectDate = pre.selectDate
+              newState.selectDate.mask.content = content
+            }
+            return newState
+          })
+          alert('签到成功')
+        })
+        .catch((error) => {
+          console.log('suming-log',error)
+        })
+    })
   }
 
-  createNewTask(){
-    let rule = new PunchRule('全天', 0, 24)
-    let task = new PunchTask('测试','测试描述',[rule])
+  createNewTask({title,desc, startTime, endTime}){
+    let rule = new PunchRule( startTime.toLocaleString(), endTime.toLocaleString())
+    let task = new PunchTask(title,desc,[rule])
     punchHelper.createNewTask(task)
       .then((result) => {
         if(!result){
-          this.setState({
-            currentTask: task
+          this.setState((pre) => {
+            let newTasks = pre.taskList.slice()
+            newTasks.push(task)
+            return {
+              taskList:newTasks,
+              currentTask: task
+            }
           })
         }
       })
@@ -76,29 +110,60 @@ export default class Punches extends Component {
   }
 
   punch(){
-    punchHelper.punchDate(this.state.currentTask.id)
+    if(this.state.currentTask){
+      punchHelper.punchDate(this.state.currentTask.id)
+        .then((task) => {
+          alert('签到成功')
+          this.setState({
+            currentTask:task
+          })
+        })
+        .catch((error) => {
+          alert(error)
+        })
+    }else {
+      alert('你还没有创建签到任务')
+    }
+  }
+
+  onTaskChange(value){
+    this.setState({
+      currentTask:value
+    })
   }
 
   render () {
+    let punchDates = this.state.currentTask&&this.state.currentTask.punchDates||[]
     return (
       <View style={styles.container}>
-        <Button onPress={this.createNewTask.bind(this)} title='新建'/>
-        {/*<Calendar*/}
-          {/*punchDates={punchDates}*/}
-          {/*markDates={markDates}*/}
-          {/*onLongPressDate={this.showMarkDialog.bind(this)}*/}
-          {/*onSelectDate={this.onSelectDayChange.bind(this)} />*/}
+        <View style={styles.titleContainer}>
+          <Text>签到列表</Text>
+          <Dropdown options={this.state.taskList}
+                    style={styles.dropdown}
+                    onSelect={this.onTaskChange.bind(this)}
+                    value={this.state.currentTask}
+                    textStyle={styles.dropdown_text}
+                    dropdownItemStyle={{height:36}}
+                    dropdownStyle={styles.dropdown_dropdown}
+          />
+          <Button onPress={() => {this.taskDialog.show(this.createNewTask.bind(this))}} title='新建任务'/>
+        </View>
+        <Calendar
+          punchDates={punchDates}
+          markDates={this.state.maskDates}
+          onLongPressDate={this.showMarkDialog.bind(this)}
+          onSelectDate={this.onSelectDayChange.bind(this)} />
         <Button onPress={this.punch.bind(this)} title='签到'/>
-        {/*{this.renderDateDetail()}*/}
+        {this.renderDateDetail()}
         <MarkModal
           ref = {(ref) => this.markDialog = ref}
         />
+        <NewTaskModal ref = {(ref) => this.taskDialog = ref}/>
       </View>
     )
   }
 
   renderDateDetail () {
-    // let lunar = calendar.solar2lunar(currentDate.getFullYear(), currentDate.getMonth() + 1, currentDate.getDate())
     if (this.state.selectDate) {
       let { lunar, mark } = this.state.selectDate
       return <View>
@@ -106,7 +171,8 @@ export default class Punches extends Component {
           {
             `
           生肖：${lunar.Animal}
-          农历日期：${lunar.gzYear}年 ${lunar.isLeap ? '闰' : ''}${lunar.gzMonth}月 ${lunar.gzDay}日
+          天干地支：${lunar.gzYear}年${lunar.gzMonth}月${lunar.gzDay}日
+          农历日期：${lunar.lYear}年 ${lunar.isLeap ? '闰' : ''}${lunar.lMonth}月 ${lunar.lDay}日
           星座：${lunar.astro}
           备注：${mark ? mark.content : '无'}`
           }
@@ -123,5 +189,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5FCFF',
+  },
+  titleContainer:{
+    flexDirection:'row',
+    alignItems:'center'
+  },
+  dropdown: {
+    width: 180,
+    height: 25,
+    borderWidth: 0,
+    borderRadius: 3,
+    backgroundColor: 'blue',
+  },
+  dropdown_text: {
+    fontSize: 14,
+    color: 'white',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+  },
+  dropdown_dropdown: {
+    width: 180,
+    borderColor: 'blue',
+    borderWidth: 1,
+    borderRadius: 3,
   }
 })

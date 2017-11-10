@@ -33,6 +33,28 @@ export default class Calendar extends Component {
     }
   }
 
+  componentWillReceiveProps (nextProps) {
+    let { punchDates, markDates } = nextProps
+    this.calendarManager = new CalendarManager(punchDates, markDates)
+  }
+
+  shouldComponentUpdate (nextProps, nextState) {
+    let oldMarkDate = this.props.markDates
+    let newMarkDates = nextProps.markDates
+    if(oldMarkDate.length === newMarkDates.length){
+      for (let i = 0; i < oldMarkDate.length; i++) {
+        if(oldMarkDate[i].content !== newMarkDates[i].content){
+          this.onSelectedDate(this.state.currentDate)
+          return true
+        }
+      }
+      return false
+    }else {
+      this.onSelectedDate(this.state.currentDate)
+      return true
+    }
+  }
+
   componentDidMount(){
     this.onSelectedDate(this.state.currentDate)
   }
@@ -46,8 +68,8 @@ export default class Calendar extends Component {
     })
   }
 
-  onDateLongPress (date) {
-    this.props.onLongPressDate&&this.onLongPressDate(date)
+  onDateLongPress (date,mask) {
+    this.props.onLongPressDate&&this.props.onLongPressDate(date,mask)
   }
 
   onYearChange (value) {
@@ -55,6 +77,7 @@ export default class Calendar extends Component {
     this.setState((pre) => {
       let newDate = new Date(pre.currentDate)
       newDate.setYear(year)
+      this.onSelectedDate(newDate)
       return {
         currentDate: newDate
       }
@@ -66,6 +89,7 @@ export default class Calendar extends Component {
     this.setState((pre) => {
       let newDate = new Date(pre.currentDate)
       newDate.setMonth(month)
+      this.onSelectedDate(newDate)
       return {
         currentDate: newDate
       }
@@ -76,6 +100,7 @@ export default class Calendar extends Component {
     this.setState({
       currentDate: value
     })
+    this.onSelectedDate(value)
   }
 
   onMonthMinus () {
@@ -87,6 +112,7 @@ export default class Calendar extends Component {
     } else {
       this.onMonthChange(month)
     }
+    this.onSelectedDate(this.state.currentDate)
   }
 
   onMonthPlus () {
@@ -98,6 +124,7 @@ export default class Calendar extends Component {
     } else {
       this.onMonthChange(month + 2)
     }
+    this.onSelectedDate(this.state.currentDate)
   }
 
   backToday () {
@@ -125,9 +152,7 @@ export default class Calendar extends Component {
       <TouchableOpacity
         onPress={this.onMonthMinus.bind(this)}
       >
-        <Text style={{
-          fontSize: 18,
-        }}>
+        <Text style={styles.arrow}>
           {'<'}
         </Text>
       </TouchableOpacity>
@@ -141,9 +166,7 @@ export default class Calendar extends Component {
       <TouchableOpacity
         onPress={this.onMonthPlus.bind(this)}
       >
-        <Text style={{
-          fontSize: 18,
-        }}>
+        <Text style={styles.arrow}>
           {'>'}
         </Text>
       </TouchableOpacity>
@@ -212,31 +235,30 @@ export default class Calendar extends Component {
                 if (index1 !== 0) itemStyle.borderTopWidth = 0
                 if (index2 !== 0) itemStyle.borderLeftWidth = 0
                 //today and selectDay
-                if (item.isToday) {
-                  itemStyle.backgroundColor = 'red'
-                } else if (currentDate.getFullYear() === item.cYear
+                if (currentDate.getFullYear() === item.cYear
                   && currentDate.getMonth() === item.cMonth - 1
                   && currentDate.getDate() === item.cDay) {
                   itemStyle.backgroundColor = 'green'
                 }
+                // else if (item.isToday) {
+                //   itemStyle.backgroundColor = 'cyan'
+                // }
                 //not current month's day
                 if (currentDate.getMonth() !== item.cMonth - 1) {
                   itemTextStyle.color = 'gray'
                 }
                 let date = new Date(item.cYear, item.cMonth - 1, item.cDay)
-              return<View style={styles.itemStyle}>
-                <TouchableOpacity
-                  onPress={() => this.onDateChange(date)}
-                  onLongPress={() => this.onDateLongPress(date)}
+              return<TouchableOpacity
                   key={index2}
+                  onPress={() => this.onDateChange(date)}
+                  onLongPress={() => this.onDateLongPress(date,this.calendarManager.getMarkByDay(date))}
                   style={itemStyle}>
                   <Text
                     style={[styles.itemText, itemTextStyle]}>
                     {item.cDay + '\n' + (item.isTerm ? item.Term : item.IDayCn)}
                   </Text>
-                </TouchableOpacity>
                   {this.calendarManager.isHasPunchByDay(date)&& <View style={styles.punchDate}/>}
-                </View>
+                </TouchableOpacity>
               }
             )}
           </View>
@@ -261,10 +283,18 @@ const styles = StyleSheet.create({
   },
   punchDate:{
     position:'absolute',
-    width:'100%',
-    height:'100%',
-    top:0,
-    left:0,
+    width:8,
+    height:8,
+    borderRadius:4,
+    backgroundColor:'red',
+    right:2,
+    top:2
+  },
+  arrow:{
+  fontSize: 26,
+  marginLeft:8,
+  marginRight:8,
+  color:'blue'
   },
   itemText: {
     fontSize: 12,

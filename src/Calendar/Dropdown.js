@@ -9,8 +9,7 @@
 import React, { Component, PropTypes } from 'react'
 import { View, StyleSheet, Dimensions, TouchableOpacity, Text, Modal, TouchableWithoutFeedback, FlatList, ActivityIndicator } from 'react-native'
 
-const itemHeight = 20
-const maxShowCount = 10
+const defaultCount = 10
 
 export default class Dropdown extends Component {
   static defaultProps = {
@@ -31,6 +30,12 @@ export default class Dropdown extends Component {
     this._listView = null
     this._nextValue = null
     this._nextIndex = null
+    this._dropdownHeight = 0
+    this._dropdownItemHeight = 20
+
+    if(props.dropdownItemStyle&&props.dropdownItemStyle.height){
+      this._dropdownItemHeight = props.dropdownItemStyle.height
+    }
 
     let options = props.options
     let buttonText =(props.value||props.defaultValue).toString()
@@ -39,7 +44,7 @@ export default class Dropdown extends Component {
     //在没有传递index的情况下，通过value遍历判断位置
     if(selectedIndex>=0 && options&&buttonText){
       for (let i = 0; i < options.length; i++) {
-        if(options[i].toString() === buttonText){
+        if(options[i] === (props.value||props.defaultValue)){
           selectedIndex = i
           break
         }
@@ -69,7 +74,7 @@ export default class Dropdown extends Component {
       }
       if(buttonText){
         for (let i = 0; i < nextProps.options.length; i++) {
-          if(nextProps.options[i].toString() === buttonText){
+          if(nextProps.options[i].toString() === (nextProps.value||nextProps.defaultValue)){
             selectedIndex = i
             break
           }
@@ -81,9 +86,9 @@ export default class Dropdown extends Component {
       selectedIndex = nextProps.index
       buttonText = nextProps.options[selectedIndex]
     }else if(nextProps.value){
-      buttonText = nextProps.value
+      buttonText = nextProps.value.toString()
       for (let i = 0; i < nextProps.options.length; i++) {
-        if(nextProps.options[i].toString() === buttonText){
+        if(nextProps.options[i] === nextProps.value){
           selectedIndex = i
           break
         }
@@ -158,18 +163,19 @@ export default class Dropdown extends Component {
   }
 
   _renderItem ({ item, index }) {
-    let { dropdownTextStyle, dropdownTextHighlightStyle } = this.props
+    let { dropdownItemStyle, dropdownTextStyle, dropdownTextHighlightStyle } = this.props
     let highlighted = index === this.state.selectedIndex
     return <TouchableOpacity
-      onPress={() => {this._onItemPress.apply(this, [item.key, index])}}
-      key={item}>
+      style={[styles.row, {height:this._dropdownItemHeight}, dropdownItemStyle]}
+      onPress={() => {this._onItemPress.apply(this, [item.value, index])}}
+      key={index}>
       <Text style={[
         styles.rowText,
         dropdownTextStyle,
         highlighted && styles.highlightedRowText,
         highlighted && dropdownTextHighlightStyle
       ]}>
-        {item.key}
+        {item.value.toString()}
       </Text>
     </TouchableOpacity>
   }
@@ -187,27 +193,34 @@ export default class Dropdown extends Component {
   }
 
   _scrollToIndex () {
-    let itemCount = this.props.options.length
-    let offset =0
-    if( itemHeight * (this.state.selectedIndex) > itemHeight * (itemCount-maxShowCount)){
-      offset = itemHeight * (itemCount-maxShowCount)
-    }else if( this.state.selectedIndex>0) {
-      offset = itemHeight * (this.state.selectedIndex)
-    }
-    this._listView.scrollToOffset({
-      animated: false,
-      offset
-    })
+   setTimeout((() => {
+     let itemCount = this.props.options.length
+     let offset =0
+     if( this._dropdownItemHeight * (this.state.selectedIndex) > this._dropdownItemHeight * itemCount - this._dropdownHeight){
+       offset =  this._dropdownItemHeight * itemCount - this._dropdownHeight
+     }else if( this.state.selectedIndex>0) {
+       offset = this._dropdownItemHeight * (this.state.selectedIndex)
+     }
+     this._listView.scrollToOffset({
+       animated: false,
+       offset
+     })
+   }).bind(this),100)
   }
-  _renderLoading() {
+
+  _renderEmpty() {
     return (
-      <ActivityIndicator size='small'/>
+     <View style={{backgroundColor:'red'}}>
+       <Text>
+         无选项
+       </Text>
+     </View>
     );
   }
 
   _renderDropdown () {
-    let dataSource = this.props.options.map((item) => {
-      return { key: item }
+    let dataSource = this.props.options.map((item, index) => {
+      return { key: index, value:item }
     })
     return <FlatList
       ref={(ref) => {this._listView = ref}}
@@ -230,6 +243,11 @@ export default class Dropdown extends Component {
     if (this.state.showDropdown && this._buttonFrame) {
       let frameStyle = this._calcPosition()
       let animationType = this.props.animated ? 'fade' : 'none'
+      if(this.props.options.length < defaultCount){
+        frameStyle.height = this._dropdownItemHeight * this.props.options.length
+      }else {
+        frameStyle.height = this._dropdownItemHeight * defaultCount
+      }
       return (
         <Modal animationType={animationType}
                visible={true}
@@ -240,8 +258,10 @@ export default class Dropdown extends Component {
                                     disabled={!this.state.showDropdown}
                                     onPress={this._onModalClose.bind(this)}>
             <View style={styles.modal}>
-              <View style={[styles.dropdown, this.props.dropdownStyle, frameStyle]}>
-                {this.state.loading ? this._renderLoading() : this._renderDropdown()}
+              <View
+                onLayout = {(e) => {this._dropdownHeight = e.nativeEvent.layout.height}}
+                style={[styles.dropdown, this.props.dropdownStyle, frameStyle]}>
+                {this.state.loading ? this._renderEmpty() : this._renderDropdown()}
               </View>
             </View>
           </TouchableWithoutFeedback>
@@ -318,7 +338,6 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    height: itemHeight*maxShowCount,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'lightgray',
     borderRadius: 2,
@@ -332,8 +351,11 @@ const styles = StyleSheet.create({
     //flexGrow: 1,
     width:'100%'
   },
+  row:{
+    justifyContent:'center',
+    alignItems:'center',
+  },
   rowText: {
-    height: itemHeight,
     paddingHorizontal: 0,
     paddingVertical: 0,
     fontSize: 11,
@@ -354,9 +376,9 @@ const styles = StyleSheet.create({
 Dropdown.propTypes = {
   disabled: PropTypes.bool,//是否禁用
   defaultIndex: PropTypes.number,//默认选中的位置
-  defaultValue: PropTypes.string,//默认选中的值
+  defaultValue: PropTypes.any,//默认选中的值
   index: PropTypes.number,//选中的位置(如果需要控制位置)
-  value: PropTypes.string,//选中的值(如果需要控制值)
+  value: PropTypes.any,//选中的值(如果需要控制值)
   options: PropTypes.array,//可选值的数组
 
   accessible: PropTypes.bool,//View低阶组件的属性，表示该元素是否可被访问
@@ -367,6 +389,7 @@ Dropdown.propTypes = {
   style: PropTypes.oneOfType([PropTypes.number, PropTypes.object, PropTypes.array]),
   textStyle: PropTypes.oneOfType([PropTypes.number, PropTypes.object, PropTypes.array]),
   dropdownStyle: PropTypes.oneOfType([PropTypes.number, PropTypes.object, PropTypes.array]),
+  dropdownItemStyle: PropTypes.oneOfType([PropTypes.number, PropTypes.object, PropTypes.array]),
   dropdownTextStyle: PropTypes.oneOfType([PropTypes.number, PropTypes.object, PropTypes.array]),
   dropdownTextHighlightStyle: PropTypes.oneOfType([PropTypes.number, PropTypes.object, PropTypes.array]),
 

@@ -18,7 +18,13 @@ export const punchHelper = {
     return AsyncStorage.setItem(PUNCH_TASK+'_'+task.id,JSON.stringify(task))
       .then(punchHelper.getAllTaskIDS)
       .then((taskIds) => {
-        taskIds.push(task.id)
+        for (let i = 0; i < taskIds.length; i++) {
+          if(task.id === taskIds[i]) break
+          if(i === taskIds.length -1){
+            taskIds.push(task.id)
+          }
+          if(taskIds.length === 0) taskIds.push(task.id)
+        }
         return punchHelper.setTaskIds(taskIds)
       })
   },
@@ -56,6 +62,8 @@ export const punchHelper = {
           for (let i = 0; i < rules.length; i++) {
             rules[i] = copyBean(rules[i], new PunchRule())
           }
+          task.createdAt = new Date(task.createdAt)
+          task.punchDates = task.punchDates.map((item) => new Date(item))
           return copyBean(task, new PunchTask())
         }else {
           return null
@@ -80,18 +88,23 @@ export const punchHelper = {
   },
 
   punchDate:(taskId) => {
+    let selectTask = undefined
     return punchHelper.getPunchTaskById(taskId)
       .then((task) => {
         if(task){
+          selectTask = task
           let result = task.punchToDate()
           if(!result){
             throw new Error('今天已经签到')
           }else {
             return AsyncStorage.setItem(PUNCH_TASK+'_'+taskId,JSON.stringify(task))
           }
-        }else {
-          throw new Error('找不到此任务')
-        }
+        }else throw new Error('找不到此任务')
+      })
+      .then((result) => {
+        if(!result){
+          return selectTask
+        }else throw new Error('签到保存本地失败')
       })
   }
 }

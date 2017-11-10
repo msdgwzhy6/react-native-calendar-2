@@ -29,12 +29,15 @@ export class PunchTask {
     this.punchDates.push(date)
     return true
   }
+
+  toString(){
+    return this.title
+  }
 }
 
 export class PunchRule {
-  constructor(name, startTime, endTime) {
+  constructor(startTime, endTime) {
     this.id = generateUUID()
-    this.name = name
     this.starTime = startTime
     this.endTime = endTime
   }

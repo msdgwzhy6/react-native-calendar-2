@@ -22,14 +22,21 @@ export default class MarkModal extends Component {
   constructor (props) {
     super(props)
     this.state = {
-      visible: false
+      visible: false,
+      value:undefined
     }
   }
 
-  show () {
+  componentDidMount(){
+    this.callback = undefined
+  }
+
+  show (defaultValue, callback) {
     this.setState({
-      visible: true
+      visible: true,
+      value:defaultValue||''
     })
+    this.callback = callback
   }
 
   close () {
@@ -39,6 +46,13 @@ export default class MarkModal extends Component {
   }
 
   onSubmit () {
+    let value = this.state.value
+    if(!value||value===''){
+      alert('备注不可为空')
+      return
+    }
+    this.callback(value)
+    this.close()
   }
 
   render () {
@@ -60,6 +74,12 @@ export default class MarkModal extends Component {
               <Text style={styles.title}>{title}</Text>
               <TextInput
                 multiline
+                value={this.state.value}
+                onChange={(e) => {
+                  this.setState({
+                    value:e.nativeEvent.text
+                  })
+                }}
                 style={styles.input}
               />
               <Button
